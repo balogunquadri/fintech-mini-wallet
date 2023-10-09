@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "jest": "jest --watchAll",
     "migrate": "sequelize db:migrate",
     "migrate:undo": "sequelize db:migrate:undo",
     "migrate:undo:all": "sequelize db:migrate:undo:all"
@@ -17,10 +18,12 @@
   "license": "ISC",
   "dependencies": {
     "@hapi/joi": "^17.1.1",
+    "@jest/globals": "^29.7.0",
     "axios": "^0.21.1",
     "bcrypt": "^5.0.0",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
+    "jest": "^29.7.0",
     "joi": "^17.3.0",
     "mysql2": "^2.2.5",
     "redis": "^3.0.2",

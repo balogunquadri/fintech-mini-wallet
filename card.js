@@ -1,20 +1,22 @@
+/* eslint-disable comma-dangle */
+/* eslint-disable quotes */
 /**
  * Test cards can be found here: https://paystack.com/docs/payments/test-payments
  * Only PIN and OTP validation are implemented.
  * You can also use the card that requires no validation
  */
 
-const axios = require('axios').default;
-const dotenv = require('dotenv');
-const { creditAccount } = require('./helpers/transactions');
-const models = require('./models');
+const axios = require("axios").default;
+const dotenv = require("dotenv");
+const { creditAccount } = require("./helpers/transactions");
+const models = require("./models");
 
 dotenv.config();
 
-const PAYSTACK_BASE_URL = 'https://api.paystack.co/charge';
+const PAYSTACK_BASE_URL = "https://api.paystack.co/charge";
 
 function processInitialCardCharge(chargeResult) {
-  if (chargeResult.data.status === 'success') {
+  if (chargeResult.data.status === "success") {
     return {
       success: true,
       message: chargeResult.data.status,
@@ -36,12 +38,15 @@ function processInitialCardCharge(chargeResult) {
 }
 
 async function completeSuccessfulCharge({ accountId, reference, amount }) {
-  await models.card_transactions.update({ last_response: 'success' }, { where: { external_reference: reference } });
+  await models.card_transactions.update(
+    { last_response: "success" },
+    { where: { external_reference: reference } }
+  );
   const t = await models.sequelize.transaction();
   const creditResult = await creditAccount({
     account_id: accountId,
     amount,
-    purpose: 'card_funding',
+    purpose: "card_funding",
     t,
     metadata: {
       external_reference: reference,
@@ -57,28 +62,38 @@ async function completeSuccessfulCharge({ accountId, reference, amount }) {
   await t.commit();
   return {
     success: true,
-    message: 'Account successfully credited',
+    message: "Account successfully credited",
   };
 }
 
 async function chargeCard({
-  accountId, pan, expiry_month, expiry_year, cvv, email, amount,
+  accountId,
+  pan,
+  expiry_month,
+  expiry_year,
+  cvv,
+  email,
+  amount,
 }) {
   try {
-    const charge = await axios.post(PAYSTACK_BASE_URL, {
-      card: {
-        number: pan,
-        cvv,
-        expiry_year,
-        expiry_month,
+    const charge = await axios.post(
+      PAYSTACK_BASE_URL,
+      {
+        card: {
+          number: pan,
+          cvv,
+          expiry_year,
+          expiry_month,
+        },
+        email,
+        amount,
       },
-      email,
-      amount,
-    }, {
-      headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-      },
-    });
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        },
+      }
+    );
     const nextAction = processInitialCardCharge(charge.data);
     await models.card_transactions.create({
       external_reference: nextAction.data.reference,
@@ -98,7 +113,7 @@ async function chargeCard({
         const creditResult = await creditAccount({
           amount,
           account_id: accountId,
-          purpose: 'card_funding',
+          purpose: "card_funding",
           metadata: {
             external_reference: nextAction.data.reference,
           },
@@ -114,7 +129,7 @@ async function chargeCard({
         await t.commit();
         return {
           success: true,
-          message: 'Charge successful',
+          message: "Charge successful",
         };
       }
       return nextAction;
@@ -133,9 +148,7 @@ async function chargeCard({
   }
 }
 
-async function submitPin({
-  reference, pin,
-}) {
+async function submitPin({ reference, pin }) {
   try {
     const transaction = await models.card_transactions.findOne({
       where: { external_reference: reference },
@@ -143,23 +156,28 @@ async function submitPin({
     if (!transaction) {
       return {
         success: false,
-        error: 'Transaction not found',
+        error: "Transaction not found",
       };
     }
-    if (transaction.last_response === 'success') {
+    if (transaction.last_response === "success") {
       return {
         success: false,
-        error: 'Transaction already succeeded',
+        error: "Transaction already succeeded",
       };
     }
-    const charge = await axios.post(`${PAYSTACK_BASE_URL}/submit_pin`, {
-      reference, pin,
-    }, {
-      headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+    const charge = await axios.post(
+      `${PAYSTACK_BASE_URL}/submit_pin`,
+      {
+        reference,
+        pin,
       },
-    });
-    if (charge.data.data.status === 'success') {
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        },
+      }
+    );
+    if (charge.data.data.status === "success") {
       await completeSuccessfulCharge({
         accountId: transaction.account_id,
         reference,
@@ -167,13 +185,13 @@ async function submitPin({
       });
       return {
         success: true,
-        message: 'Charge successful',
+        message: "Charge successful",
         shouldCreditAccount: true,
       };
     }
     await models.card_transactions.update(
       { last_response: charge.data.data.status },
-      { where: { external_reference: reference } },
+      { where: { external_reference: reference } }
     );
 
     return {
@@ -189,9 +207,7 @@ async function submitPin({
   }
 }
 
-async function submitOtp({
-  reference, otp,
-}) {
+async function submitOtp({ reference, otp }) {
   try {
     const transaction = await models.card_transactions.findOne({
       where: { external_reference: reference },
@@ -199,24 +215,29 @@ async function submitOtp({
     if (!transaction) {
       return {
         success: false,
-        error: 'Transaction not found',
+        error: "Transaction not found",
       };
     }
-    if (transaction.last_response === 'success') {
+    if (transaction.last_response === "success") {
       return {
         success: false,
-        error: 'Transaction already succeeded',
+        error: "Transaction already succeeded",
       };
     }
-    const charge = await axios.post(`${PAYSTACK_BASE_URL}/submit_otp`, {
-      reference, otp,
-    }, {
-      headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+    const charge = await axios.post(
+      `${PAYSTACK_BASE_URL}/submit_otp`,
+      {
+        reference,
+        otp,
       },
-    });
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        },
+      }
+    );
 
-    if (charge.data.data.status === 'success') {
+    if (charge.data.data.status === "success") {
       await completeSuccessfulCharge({
         accountId: transaction.account_id,
         reference,
@@ -224,13 +245,13 @@ async function submitOtp({
       });
       return {
         success: true,
-        message: 'Charge successful',
+        message: "Charge successful",
         shouldCreditAccount: true,
       };
     }
     await models.card_transactions.update(
       { last_response: charge.data.data.status },
-      { where: { external_reference: reference } },
+      { where: { external_reference: reference } }
     );
 
     return {
@@ -246,9 +267,7 @@ async function submitOtp({
   }
 }
 
-async function submitPhone({
-  reference, phone,
-}) {
+async function submitPhone({ reference, phone }) {
   try {
     const transaction = await models.card_transactions.findOne({
       where: { external_reference: reference },
@@ -256,24 +275,29 @@ async function submitPhone({
     if (!transaction) {
       return {
         success: false,
-        error: 'Transaction not found',
+        error: "Transaction not found",
       };
     }
-    if (transaction.last_response === 'success') {
+    if (transaction.last_response === "success") {
       return {
         success: false,
-        error: 'Transaction already succeeded',
+        error: "Transaction already succeeded",
       };
     }
-    const charge = await axios.post(`${PAYSTACK_BASE_URL}/submit_phone`, {
-      reference, phone,
-    }, {
-      headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+    const charge = await axios.post(
+      `${PAYSTACK_BASE_URL}/submit_phone`,
+      {
+        reference,
+        phone,
       },
-    });
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        },
+      }
+    );
 
-    if (charge.data.data.status === 'success') {
+    if (charge.data.data.status === "success") {
       await completeSuccessfulCharge({
         accountId: transaction.account_id,
         reference,
@@ -281,13 +305,13 @@ async function submitPhone({
       });
       return {
         success: true,
-        message: 'Charge successful',
+        message: "Charge successful",
         shouldCreditAccount: true,
       };
     }
     await models.card_transactions.update(
       { last_response: charge.data.data.status },
-      { where: { external_reference: reference } },
+      { where: { external_reference: reference } }
     );
 
     return {
@@ -304,28 +328,45 @@ async function submitPhone({
 }
 
 async function chargeCardWithAuthorization(authorization) {
-  const charge = await axios.post(PAYSTACK_BASE_URL, {
-    authorization_code: authorization,
-    amount: 10000,
-    email: 'jack@jill.com',
-  }, {
-    headers: {
-      Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+  const charge = await axios.post(
+    PAYSTACK_BASE_URL,
+    {
+      authorization_code: authorization,
+      amount: 10000,
+      email: "jack@jill.com",
     },
-  });
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+      },
+    }
+  );
   return {
     success: true,
     data: charge.data.data,
   };
 }
 
-chargeCardWithAuthorization('AUTH_zev61rikmn').then(console.log).catch(console.log);
+// eslint-disable-next-line max-len
+
+// chargeCardWithAuthorization("AUTH_zev61rikmn")
+//   .then(console.log)
+//   .catch(console.log);
 // chargeCard({
 //   accountId: 1,
-//   pan: '506066506066506067',
+//   pan: "506066506066506067",
 //   amount: 1000000,
-//   cvv: '060',
-//   email: 'jack@jill.com',
-//   expiry_month: '12',
-//   expiry_year: '25',
-// }).then(console.log).catch(console.log);
+//   cvv: "060",
+//   email: "jack@j.com",
+//   expiry_month: "12",
+//   expiry_year: "25",
+// })
+//   .then(console.log)
+//   .catch(console.log);
+
+module.exports = {
+  processInitialCardCharge,
+  completeSuccessfulCharge,
+
+  chargeCardWithAuthorization,
+};

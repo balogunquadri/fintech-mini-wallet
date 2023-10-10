@@ -10,6 +10,7 @@ const { creditAccount } = require("./helpers/transactions");
 const {
   processInitialCardCharge,
   completeSuccessfulCharge,
+  submitPhone,
   chargeCardWithAuthorization,
 } = require("./card");
 const models = require("./models");

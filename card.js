@@ -368,5 +368,6 @@ module.exports = {
   processInitialCardCharge,
   completeSuccessfulCharge,
 
+  submitPhone,
   chargeCardWithAuthorization,
 };
